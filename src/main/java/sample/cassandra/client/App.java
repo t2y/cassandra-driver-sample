@@ -12,17 +12,29 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class App {
 
-    private static Config config() {
-        val defaultConfig = ConfigFactory.load();
+    private static String getConfigPath() {
+        String path;
+        val opt = Optional.ofNullable(System.getProperty(Constants.CONFIG));
+        if (opt.isPresent()) {
+            path = opt.get();
+        } else {
+            val prop = App.class.getClassLoader().getResource(Constants.DEFULT_PROP);
+            if (prop == null) {
+                throw new IllegalArgumentException("Use -Dconfig=path/to/client.properties");
+            }
+            path = prop.getPath();
+        }
+        log.info("config: " + path);
+        return path;
+    }
 
-        val prop = App.class.getClassLoader().getResource(Constants.DEFULT_PROP);
-        val defaultPath = prop.getPath();
-        val externalConfigFile = Optional.ofNullable(defaultPath).map(File::new);
+    private static Config getConfig() {
+        val defaultConfig = ConfigFactory.load();
+        val externalConfigFile = Optional.ofNullable(getConfigPath()).map(File::new);
         if (externalConfigFile.isPresent() && !externalConfigFile.get().exists()) {
             throw new RuntimeException(
                     "external config file " + externalConfigFile.get().getAbsolutePath() + " not found");
         }
-
         return externalConfigFile
                 .map(ConfigFactory::parseFile)
                 .map(c -> c.withFallback(defaultConfig))
@@ -32,11 +44,11 @@ public class App {
     public static void main(String[] args) {
         System.out.println("start");
 
-        val config = config();
+        val config = getConfig();
         val client = new CassandraClient(config);
         client.showReleaseVersion();
 
-        val opt = Optional.ofNullable(System.getProperty("cql"));
+        val opt = Optional.ofNullable(System.getProperty(Constants.CQL));
         if (opt.isPresent()) {
             client.queryCql(opt.get());
         }

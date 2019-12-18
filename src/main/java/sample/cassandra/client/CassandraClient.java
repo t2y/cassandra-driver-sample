@@ -1,7 +1,15 @@
 package sample.cassandra.client;
 
+import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.KeyStore;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
@@ -17,19 +25,47 @@ public class CassandraClient {
 
     private final Config config;
 
+    private final String SSL = "SSL";
+    private final String JKS = "JKS";
+
+    private SSLContext createSslContext(String tsPath, String tsPasswd) {
+        try {
+            val context = SSLContext.getInstance(SSL);
+            val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            try (InputStream tsf = Files.newInputStream(Paths.get(tsPath))) {
+                val ts = KeyStore.getInstance(JKS);
+                ts.load(tsf, tsPasswd.toCharArray());
+                tmf.init(ts);
+            }
+            context.init(null, tmf.getTrustManagers(), new SecureRandom());
+            return context;
+        } catch (Exception e) {
+            throw new AssertionError("Unexpected error while creating SSL context", e);
+        }
+    }
+
     private CqlSession createSession() {
-        val host = config.getString(Constants.CASSANDA_HOST);
-        val port = config.getInt(Constants.CASSANDRA_PORT);
-        val dc = config.getString(Constants.CASSANDRA_DATA_CENTER);
-        val user = config.getString(Constants.CASSANDRA_USER);
-        val passwd = config.getString(Constants.CASSANDRA_PASSWORD);
+        val host = config.getString(Constants.CassandraConfig.HOST.getKey());
+        val port = config.getInt(Constants.CassandraConfig.PORT.getKey());
+        val dc = config.getString(Constants.CassandraConfig.DATA_CENTER.getKey());
 
         val builder = CqlSession.builder()
                 .addContactPoint(new InetSocketAddress(host, port))
                 .withLocalDatacenter(dc);
 
+        val passwd = config.getString(Constants.CassandraConfig.PASSWORD.getKey());
         if (!passwd.isEmpty()) {
+            val user = config.getString(Constants.CassandraConfig.USER.getKey());
+            log.info("use credential with " + user);
             builder.withAuthCredentials(user, passwd);
+        }
+
+        val tsPath = config.getString(Constants.CassandraConfig.TRUSTSTORE_PATH.getKey());
+        if (!tsPath.isEmpty()) {
+            val tsPasswd = config.getString(Constants.CassandraConfig.TRUSTSTORE_PASSWORD.getKey());
+            val sslContext = this.createSslContext(tsPath, tsPasswd);
+            log.info("use ssl context with " + tsPath);
+            builder.withSslContext(sslContext);
         }
 
         return builder.build();
