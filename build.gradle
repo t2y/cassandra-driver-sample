@@ -38,6 +38,10 @@ application {
     mainClassName = 'sample.cassandra.client.App'
 }
 
+tasks.withType(JavaExec) {
+    systemProperties System.properties
+}
+
 task executableJar(type: Jar) {
 	manifest {
         attributes 'Main-Class': 'sample.cassandra.client.App'

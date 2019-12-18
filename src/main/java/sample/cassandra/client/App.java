@@ -36,6 +36,10 @@ public class App {
         val client = new CassandraClient(config);
         client.showReleaseVersion();
 
+        val opt = Optional.ofNullable(System.getProperty("cql"));
+        if (opt.isPresent()) {
+            client.queryCql(opt.get());
+        }
         System.out.println("end");
     }
 }
