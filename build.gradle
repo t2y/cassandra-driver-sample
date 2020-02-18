@@ -13,28 +13,32 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.8'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.8'
     testCompileOnly 'org.projectlombok:lombok:1.18.8'
-    implementation 'com.google.guava:guava:28.0-jre'
+    implementation 'com.google.guava:guava:25.1-jre'
 
     // for logging
-    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
-    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+    implementation 'ch.qos.logback:logback-classic:1.2.3'
+    implementation 'org.slf4j:slf4j-api:1.7.25'
 
     // cassandra
-    compile group: 'com.datastax.oss', name: 'java-driver-core', version: '4.3.1'
-    compile group: 'com.datastax.oss', name: 'java-driver-query-builder', version: '4.3.1'
-    compile group: 'com.datastax.oss', name: 'java-driver-mapper-runtime', version: '4.3.1'
+    annotationProcessor 'com.datastax.oss:java-driver-mapper-processor:4.3.1'
+    testAnnotationProcessor 'com.datastax.oss:java-driver-mapper-processor:4.3.1'
+
+    implementation 'com.datastax.oss:java-driver-core:4.3.1'
+    implementation 'com.datastax.oss:java-driver-mapper-runtime:4.3.1'
+    implementation 'com.datastax.oss:java-driver-query-builder:4.3.1'
 
     // config
-    compile group: 'com.typesafe', name: 'config', version: '1.4.0'
+    implementation 'com.typesafe:config:1.4.0'
 
     // testing
-    testCompile group: 'org.cassandraunit', name: 'cassandra-unit', version: '3.11.2.0'
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.cassandraunit:cassandra-unit:4.3.1.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.5.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.5.1'
 }
 
 application {
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    sourceCompatibility = 1.11
+    targetCompatibility = 1.11
     mainClassName = 'sample.cassandra.client.App'
 }
 
@@ -50,9 +54,21 @@ task executableJar(type: Jar) {
     with jar
 }
 
+sourceSets.main.java.srcDir "build/generated/sources/annotationProcessor/java/main"
+
 // for debugging
 tasks.withType(JavaExec) {
     if (System.getProperty('DEBUG', 'false') == 'true') {
         jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005'
+    }
+}
+
+test {
+    useJUnitPlatform()
+    forkEvery(1)
+    maxParallelForks(1)
+    testLogging {
+        exceptionFormat "full" // default is "short"
+        events "started", "passed", "skipped", "failed", "standardOut", "standardError"
     }
 }
