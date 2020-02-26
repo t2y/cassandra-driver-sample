@@ -40,6 +40,7 @@ public class CassandraClientTest {
   }
 
   @Test
+  @SuppressWarnings("resource")
   public void testInsert() throws Exception {
     val client = new CassandraClient(SESSION);
     assertDoesNotThrow(
