@@ -4,10 +4,10 @@ sample code to use cassandra driver
 
 ## How to run
 
-modify your cassandra cluster settings.
+modify your cassandra cluster settings. see also [Configuration](https://docs.datastax.com/en/developer/java-driver/4.3/manual/core/configuration/).
 
 ```bash
-$ vi src/main/resources/client.properties
+$ vi src/main/resources/application.conf
 ```
 
 gradle's run task uses above `client.properties` and connect to cassandra cluster.
