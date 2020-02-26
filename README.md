@@ -36,3 +36,12 @@ INFO  Using native clock for microsecond precision
 INFO  row: xxx, yyy, zzz
 ...
 ```
+
+to query asynchronously.
+
+```bash
+$ ./gradlew run -Dcql="select * from keyspace.table" -Dasync=true
+...
+INFO  async: select * from keyspace.table
+...
+```

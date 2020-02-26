@@ -2,6 +2,7 @@ package sample.cassandra.client;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
+import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 
 import java.nio.file.Files;
@@ -9,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +51,10 @@ public class CassandraClient implements AutoCloseable {
     return session.execute(cql);
   }
 
+  private CompletionStage<AsyncResultSet> queryAsync(String cql) {
+    return session.executeAsync(cql);
+  }
+
   public void showReleaseVersion() {
     val rs = this.query("select cluster_name, release_version from system.local");
     val row = rs.one();
@@ -68,6 +74,23 @@ public class CassandraClient implements AutoCloseable {
       }
       log.info(String.format("row: %s", String.join(", ", values)));
     }
+  }
+
+  public void queryCqlAsync(String cql) {
+    log.info("async: {}", cql);
+    val cs = this.queryAsync(cql);
+    cs.whenComplete(
+        (resultSet, throwable) -> {
+          do {
+            for (val row : resultSet.currentPage()) {
+              val values = new ArrayList<String>();
+              for (val column : row.getColumnDefinitions()) {
+                values.add(row.getObject(column.getName()).toString());
+              }
+              log.info(String.format("row: %s", String.join(", ", values)));
+            }
+          } while (resultSet.hasMorePages());
+        });
   }
 
   public void close() {
