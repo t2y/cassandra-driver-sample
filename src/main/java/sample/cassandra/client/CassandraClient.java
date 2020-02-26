@@ -1,19 +1,14 @@
 package sample.cassandra.client;
 
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
-import com.typesafe.config.Config;
 
-import java.io.InputStream;
-import java.net.InetSocketAddress;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.KeyStore;
-import java.security.SecureRandom;
 import java.util.ArrayList;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
+import java.util.Optional;
 
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -21,62 +16,33 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CassandraClient implements AutoCloseable {
 
-  private Config config;
+  private static final String DEFAULT_CONF_PATH = "src/main/resources/application.conf";
   private final CqlSession session;
-
-  private final String SSL = "SSL";
-  private final String JKS = "JKS";
 
   public CassandraClient(CqlSession session) {
     this.session = session;
   }
 
-  public CassandraClient(Config config) {
-    this.config = config;
+  public CassandraClient() {
     this.session = this.createSession();
   }
 
-  private SSLContext createSslContext(String tsPath, String tsPasswd) {
-    try {
-      val context = SSLContext.getInstance(SSL);
-      val tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-      try (InputStream tsf = Files.newInputStream(Paths.get(tsPath))) {
-        val ts = KeyStore.getInstance(JKS);
-        ts.load(tsf, tsPasswd.toCharArray());
-        tmf.init(ts);
-      }
-      context.init(null, tmf.getTrustManagers(), new SecureRandom());
-      return context;
-    } catch (Exception e) {
-      throw new AssertionError("Unexpected error while creating SSL context", e);
+  private Path getAbsolulePath(String filePath) {
+    val absolutePath = Paths.get(filePath).toAbsolutePath();
+    if (Files.isReadable(absolutePath)) {
+      return absolutePath;
     }
+    val message = String.format("%s is not exist/readable", absolutePath);
+    throw new IllegalArgumentException(message);
   }
 
   private CqlSession createSession() {
-    val host = config.getString(Constants.CassandraConfig.HOST.getKey());
-    val port = config.getInt(Constants.CassandraConfig.PORT.getKey());
-    val dc = config.getString(Constants.CassandraConfig.DATA_CENTER.getKey());
-
-    val builder =
-        CqlSession.builder()
-            .addContactPoint(new InetSocketAddress(host, port))
-            .withLocalDatacenter(dc);
-
-    val passwd = config.getString(Constants.CassandraConfig.PASSWORD.getKey());
-    if (!passwd.isEmpty()) {
-      val user = config.getString(Constants.CassandraConfig.USER.getKey());
-      log.info("use credential with " + user);
-      builder.withAuthCredentials(user, passwd);
-    }
-
-    val tsPath = config.getString(Constants.CassandraConfig.TRUSTSTORE_PATH.getKey());
-    if (!tsPath.isEmpty()) {
-      val tsPasswd = config.getString(Constants.CassandraConfig.TRUSTSTORE_PASSWORD.getKey());
-      val sslContext = this.createSslContext(tsPath, tsPasswd);
-      log.info("use ssl context with " + tsPath);
-      builder.withSslContext(sslContext);
-    }
-    return builder.build();
+    val opt = Optional.ofNullable(System.getProperty(Constants.CONF));
+    val confPath = this.getAbsolulePath(opt.orElse(DEFAULT_CONF_PATH));
+    log.info("Use CqlSession config: {}", confPath.toString());
+    return CqlSession.builder()
+        .withConfigLoader(DriverConfigLoader.fromFile(confPath.toFile()))
+        .build();
   }
 
   private ResultSet query(String cql) {
