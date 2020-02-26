@@ -19,7 +19,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class CassandraClient {
+public class CassandraClient implements AutoCloseable {
 
   private Config config;
   private final CqlSession session;
@@ -105,6 +105,7 @@ public class CassandraClient {
   }
 
   public void close() {
+    log.debug("close was called");
     if (this.session != null) {
       this.session.close();
     }

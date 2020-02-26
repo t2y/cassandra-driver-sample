@@ -44,17 +44,21 @@ public class App {
         .orElse(defaultConfig);
   }
 
+  private static void queryToCassandra() {
+    val config = getConfig();
+    try (val client = new CassandraClient(config)) {
+      client.showReleaseVersion();
+
+      val opt = Optional.ofNullable(System.getProperty(Constants.CQL));
+      if (opt.isPresent()) {
+        client.queryCql(opt.get());
+      }
+    }
+  }
+
   public static void main(String[] args) {
     System.out.println("start");
-
-    val config = getConfig();
-    val client = new CassandraClient(config);
-    client.showReleaseVersion();
-
-    val opt = Optional.ofNullable(System.getProperty(Constants.CQL));
-    if (opt.isPresent()) {
-      client.queryCql(opt.get());
-    }
+    queryToCassandra();
     System.out.println("end");
   }
 }
