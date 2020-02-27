@@ -6,6 +6,7 @@ import com.datastax.oss.driver.api.mapper.annotations.Insert;
 import com.datastax.oss.driver.api.mapper.annotations.Select;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import sample.cassandra.repository.entity.User;
 
@@ -15,8 +16,11 @@ public interface UserDao {
   @Select
   User findById(UUID userId);
 
-  @Insert
+  @Insert(ifNotExists = false)
   void save(User user);
+
+  @Insert(ifNotExists = false)
+  CompletableFuture<Void> saveAsync(User user);
 
   @Delete
   void delete(User user);
