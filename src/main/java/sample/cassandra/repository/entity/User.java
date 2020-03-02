@@ -23,7 +23,7 @@ import lombok.ToString;
 @Setter
 @ToString
 @EqualsAndHashCode
-@Entity(defaultKeyspace = "test")
+@Entity
 @NamingStrategy(convention = SNAKE_CASE_INSENSITIVE)
 public class User implements Table {
 
@@ -44,8 +44,8 @@ public class User implements Table {
   private LocalDate birthDate;
 
   @Override
-  public CreateTable getCreateTable() {
-    return SchemaBuilder.createTable("test", "user")
+  public CreateTable getCreateTable(String keyspace) {
+    return SchemaBuilder.createTable(keyspace, "user")
         .ifNotExists()
         .withPartitionKey("id", DataTypes.UUID)
         .withClusteringColumn("name", DataTypes.ASCII)
@@ -55,7 +55,7 @@ public class User implements Table {
   }
 
   @Override
-  public Drop getDropTable() {
-    return SchemaBuilder.dropTable("test", "user").ifExists();
+  public Drop getDropTable(String keyspace) {
+    return SchemaBuilder.dropTable(keyspace, "user").ifExists();
   }
 }

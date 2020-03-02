@@ -85,3 +85,10 @@ test {
         jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005'
     }
 }
+
+task deleteUnneededResources(type: Delete) {
+    delete fileTree('build/resources') {
+        include '**/application.*'
+    }
+}
+processTestResources.finalizedBy deleteUnneededResources
