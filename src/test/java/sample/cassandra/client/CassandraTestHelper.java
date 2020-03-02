@@ -69,7 +69,7 @@ public class CassandraTestHelper {
         .build();
   }
 
-  public static Path getResource(String name) throws URISyntaxException {
+  public static Path getConfigPath(String name) throws URISyntaxException {
     val loader = CassandraTestHelper.class.getClassLoader();
     val url = loader.getResource(name);
     return Path.of(url.toURI());

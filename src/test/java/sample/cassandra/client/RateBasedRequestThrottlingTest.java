@@ -27,9 +27,9 @@ public class RateBasedRequestThrottlingTest {
   @BeforeAll
   static void setup() throws Exception {
     val embeddedSession = CassandraTestHelper.getSession(KEYSPACE, new User());
-    val conf = CassandraTestHelper.getResource(CONF_NAME);
-    log.info("Use config file: {}", conf.toString());
-    SESSION = CassandraTestHelper.getSession(embeddedSession, conf);
+    val config = CassandraTestHelper.getConfigPath(CONF_NAME);
+    log.info("Use config file: {}", config);
+    SESSION = CassandraTestHelper.getSession(embeddedSession, config);
     embeddedSession.close();
   }
 
