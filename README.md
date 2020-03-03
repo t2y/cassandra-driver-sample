@@ -10,14 +10,14 @@ modify your cassandra cluster settings. see also [Configuration](https://docs.da
 $ vi src/main/resources/application.conf
 ```
 
-gradle's run task uses above `client.properties` and connect to cassandra cluster.
+gradle's run task uses above `application.conf` and connect to cassandra cluster.
 
 ```bash
 $ ./gradlew run
 ...
 > Task :run
 start
-INFO  config: /Users/t2y/work/repo/cassandra-driver-sample/build/resources/main/client.properties
+INFO  Use CqlSession config: /home/t2y/work/repo/cassandra-driver-sample/src/main/resources/application.conf
 INFO  DataStax Java driver for Apache Cassandra(R) (com.datastax.oss:java-driver-core) version 4.3.1
 INFO  Using native clock for microsecond precision
 INFO  cluster_name: test, release_version: 3.11.2
