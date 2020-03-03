@@ -1,14 +1,16 @@
 package sample.cassandra.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.datastax.oss.driver.api.core.AllNodesFailedException;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.RequestThrottlingException;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 
 import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -24,11 +26,11 @@ import sample.cassandra.repository.mapper.UserMapper;
 import sample.cassandra.repository.mapper.UserMapperBuilder;
 
 @Slf4j
-public class RateBasedRequestThrottlingTest {
+public class ConcurrencyLimitingRequestThrottlingTest {
 
-  private static final String CONF_NAME = "rate-based-cassandra-session.conf";
+  private static final String CONF_NAME = "concurrency-limiting-cassandra-session.conf";
 
-  private static String KEYSPACE = "rate";
+  private static String KEYSPACE = "concurrency";
   private static CqlSession SESSION;
   private static UserMapper USER_MAPPER;
 
@@ -44,7 +46,7 @@ public class RateBasedRequestThrottlingTest {
 
   @AfterAll
   static void tearDown() {
-    // Don't requests since RequestThrottlingException might occur
+    // Don't requests since RequestThrottlingException might occurre
     // CassandraTestHelper.dropTable(SESSION, KEYSPACE, new User());
     SESSION.close();
   }
@@ -62,9 +64,10 @@ public class RateBasedRequestThrottlingTest {
   }
 
   @Test
-  public void testInsertWithinRateLimit() {
-    val total = 30;
+  public void testInsertWithinConcurrency() {
+    val total = 50;
     val dao = USER_MAPPER.userDao(CqlIdentifier.fromCql(KEYSPACE));
+    // expects no errors occurred
     CassandraTestHelper.insertAsyncLogsOfData(total, dao);
     Awaitility.await()
         .atMost(3, TimeUnit.SECONDS)
@@ -82,22 +85,35 @@ public class RateBasedRequestThrottlingTest {
   }
 
   @Test
-  public void testOccurLotsOfInsertAsync() {
-    val total = 144;
+  public void testOccurLotsOfInsertAsync() throws InterruptedException {
+    val total = 300;
     val dao = USER_MAPPER.userDao(CqlIdentifier.fromCql(KEYSPACE));
-    CassandraTestHelper.insertAsyncLogsOfData(total, dao);
-    Awaitility.await()
-        .atMost(3, TimeUnit.SECONDS)
-        .pollDelay(50, TimeUnit.MILLISECONDS)
-        .until(
-            () -> {
-              assertThrows(
-                  RequestThrottlingException.class,
-                  () -> {
-                    val findUsersNum = dao.all().all().size();
-                    log.info("number of users: {}", findUsersNum);
+    // expects some errors occurred
+    val users = CassandraTestHelper.createUsers(total);
+    val result = new int[] {0, 0};
+    IntStream.range(0, total)
+        .forEach(
+            i -> {
+              val future = dao.saveAsync(users.get(i));
+              future.whenComplete(
+                  (dummy, throwable) -> {
+                    if (throwable != null) {
+                      var cause = throwable.getCause();
+                      do {
+                        if (cause instanceof RequestThrottlingException) {
+                          result[0] = 1;
+                        }
+                        if (cause instanceof AllNodesFailedException) {
+                          result[1] = 1;
+                        }
+                      } while ((cause = cause.getCause()) != null);
+                      log.info("failed to insert: {}", i);
+                      log.info(throwable.getMessage());
+                    }
                   });
-              return true;
             });
+    log.info("finished to insert");
+    Thread.sleep(3000);
+    assertTrue(result[0] == 1 && result[1] == 1);
   }
 }
