@@ -16,12 +16,15 @@ import java.util.UUID;
 import java.util.stream.IntStream;
 
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper;
 
+import sample.cassandra.repository.dao.UserDao;
 import sample.cassandra.repository.entity.Table;
 import sample.cassandra.repository.entity.User;
 
+@Slf4j
 public class CassandraTestHelper {
 
   static void createKeyspace(CqlSession session, String name) {
@@ -37,7 +40,7 @@ public class CassandraTestHelper {
     session.execute(table.getDropTable(keyspace).asCql());
   }
 
-  public static void truncateTable(CqlSession session, String ks, String table) {
+  static void truncateTable(CqlSession session, String ks, String table) {
     session.execute(QueryBuilder.truncate(ks, table).asCql());
   }
 
@@ -46,7 +49,7 @@ public class CassandraTestHelper {
     return EmbeddedCassandraServerHelper.getSession();
   }
 
-  public static CqlSession getSession(String keyspace, Table... tables) throws Exception {
+  static CqlSession getSession(String keyspace, Table... tables) throws Exception {
     val session = getSession();
     createKeyspace(session, keyspace);
     for (int i = 0; i < tables.length; i++) {
@@ -55,7 +58,7 @@ public class CassandraTestHelper {
     return session;
   }
 
-  public static Optional<InetSocketAddress> getInetSocketAddress(CqlSession session) {
+  static Optional<InetSocketAddress> getInetSocketAddress(CqlSession session) {
     val addresses = MiscUtils.getInetSocketAddresses(session);
     if (addresses.isEmpty()) {
       return Optional.empty();
@@ -65,7 +68,7 @@ public class CassandraTestHelper {
 
   private static String _DATACENTER = "datacenter1";
 
-  public static CqlSession getSession(CqlSession session, Path config) {
+  static CqlSession getSession(CqlSession session, Path config) {
     val address = getInetSocketAddress(session).orElseThrow();
     val configLoader = DriverConfigLoader.fromFile(config.toFile());
     return CqlSession.builder()
@@ -75,13 +78,13 @@ public class CassandraTestHelper {
         .build();
   }
 
-  public static Path getConfigPath(String name) throws URISyntaxException {
+  static Path getConfigPath(String name) throws URISyntaxException {
     val loader = CassandraTestHelper.class.getClassLoader();
     val url = loader.getResource(name);
     return Path.of(url.toURI());
   }
 
-  public static List<User> createUsers(int n) {
+  static List<User> createUsers(int n) {
     val users = new ArrayList<User>(n);
     IntStream.range(0, n)
         .forEach(
@@ -90,5 +93,21 @@ public class CassandraTestHelper {
               users.add(user);
             });
     return users;
+  }
+
+  static void insertAsyncLogsOfData(int total, UserDao dao) {
+    val users = CassandraTestHelper.createUsers(total);
+    IntStream.range(0, total)
+        .forEach(
+            i -> {
+              val future = dao.saveAsync(users.get(i));
+              future.whenComplete(
+                  (dummy, throwable) -> {
+                    if (throwable != null) {
+                      log.info("failed to insert: {}", i);
+                      log.info(throwable.getMessage());
+                    }
+                  });
+            });
   }
 }
