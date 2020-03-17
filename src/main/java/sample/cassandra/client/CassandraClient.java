@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
+import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -19,7 +20,8 @@ import lombok.extern.slf4j.Slf4j;
 public class CassandraClient implements AutoCloseable {
 
   private static final String DEFAULT_CONF_PATH = "src/main/resources/application.conf";
-  private final CqlSession session;
+
+  @Getter private final CqlSession session;
 
   public CassandraClient(CqlSession session) {
     this.session = session;

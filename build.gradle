@@ -27,6 +27,8 @@ dependencies {
     implementation 'com.datastax.oss:java-driver-mapper-runtime:4.3.1'
     implementation 'com.datastax.oss:java-driver-query-builder:4.3.1'
 
+    implementation 'io.dropwizard.metrics:metrics-jmx:4.1.4'
+
     // config
     implementation 'com.typesafe:config:1.4.0'
 
