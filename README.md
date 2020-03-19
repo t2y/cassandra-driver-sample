@@ -12,6 +12,8 @@ $ vi src/main/resources/application.conf
 
 gradle's run task uses above `application.conf` and connect to cassandra cluster.
 
+### query cql
+
 ```bash
 $ ./gradlew run
 ...
@@ -44,4 +46,38 @@ $ ./gradlew run -Dcql="select * from keyspace.table" -Dasync=true
 ...
 INFO  async: select * from keyspace.table
 ...
+```
+
+### provide metrics via jmx
+
+```bash
+$ ./gradlew run --args='jmx'
+
+> Task :run
+start
+...
+DEBUG com.datastax.oss.driver:name=s0.nodes.127_0_0_2-9042.bytes-received,type=meters
+DEBUG com.datastax.oss.driver:name=s0.nodes.127_0_0_3-9042.pool.in-flight,type=gauges
+DEBUG com.datastax.oss.driver:name=s0.throttling.errors,type=counters
+DEBUG com.datastax.oss.driver:name=s0.nodes.127_0_0_2-9042.pool.in-flight,type=gauges
+DEBUG com.datastax.oss.driver:name=s0.nodes.127_0_0_1-9042.pool.open-connections,type=gauges
+DEBUG com.datastax.oss.driver:name=s0.connected-nodes,type=gauges
+DEBUG com.datastax.oss.driver:name=s0.nodes.127_0_0_1-9042.bytes-sent,type=meters
+DEBUG com.datastax.oss.driver:name=s0.throttling.queue-size,type=gauges
+DEBUG com.datastax.oss.driver:name=s0.cql-requests,type=timers
+DEBUG com.datastax.oss.driver:name=s0.nodes.127_0_0_1-9042.pool.in-flight,type=gauges
+DEBUG com.datastax.oss.driver:name=s0.nodes.127_0_0_2-9042.bytes-sent,type=meters
+DEBUG com.datastax.oss.driver:name=s0.throttling.delay,type=timers
+DEBUG com.datastax.oss.driver:name=s0.nodes.127_0_0_3-9042.pool.open-connections,type=gauges
+DEBUG com.datastax.oss.driver:name=s0.nodes.127_0_0_2-9042.pool.open-connections,type=gauges
+DEBUG com.datastax.oss.driver:name=s0.nodes.127_0_0_3-9042.bytes-received,type=meters
+DEBUG com.datastax.oss.driver:name=s0.nodes.127_0_0_3-9042.bytes-sent,type=meters
+DEBUG com.datastax.oss.driver:name=s0.nodes.127_0_0_1-9042.bytes-received,type=meters
+INFO  start JMX Reporter for Cassandra driver's metrics
+```
+
+attach a local process with jconsole
+
+```bash
+$ jconsole
 ```

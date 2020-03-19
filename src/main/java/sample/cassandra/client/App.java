@@ -36,7 +36,10 @@ public class App {
             .getRegistry();
 
     JmxReporter reporter =
-        JmxReporter.forRegistry(registry).inDomain(CASSANDRA_REGISTRY_DOMAIN).build();
+        JmxReporter.forRegistry(registry)
+            .inDomain(CASSANDRA_REGISTRY_DOMAIN)
+            .createsObjectNamesWith(new MetricsNameFactory())
+            .build();
     reporter.start();
     log.info("start JMX Reporter for Cassandra driver's metrics");
   }
