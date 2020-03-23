@@ -65,12 +65,12 @@ public class ConcurrencyLimitingRequestThrottlingTest {
 
   @Test
   public void testInsertWithinConcurrency() {
-    val total = 50;
+    val total = 36;
     val dao = USER_MAPPER.userDao(CqlIdentifier.fromCql(KEYSPACE));
     // expects no errors occurred
-    CassandraTestHelper.insertAsyncLogsOfData(total, dao);
+    CassandraTestHelper.insertAsyncLotsOfData(total, dao);
     Awaitility.await()
-        .atMost(3, TimeUnit.SECONDS)
+        .atMost(5, TimeUnit.SECONDS)
         .pollDelay(100, TimeUnit.MILLISECONDS)
         .until(
             () -> {
@@ -86,10 +86,10 @@ public class ConcurrencyLimitingRequestThrottlingTest {
 
   @Test
   public void testOccurLotsOfInsertAsync() throws InterruptedException {
-    val total = 300;
+    val total = 360;
     val dao = USER_MAPPER.userDao(CqlIdentifier.fromCql(KEYSPACE));
     // expects some errors occurred
-    val users = CassandraTestHelper.createUsers(total);
+    val users = CassandraTestHelper.createUsers(0, total);
     val result = new int[] {0, 0};
     IntStream.range(0, total)
         .forEach(

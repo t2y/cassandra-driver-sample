@@ -99,7 +99,7 @@ public class CassandraClientTest {
   @Test
   public void testLotsOfInsertAsync() {
     val total = 1000;
-    val users = CassandraTestHelper.createUsers(total);
+    val users = CassandraTestHelper.createUsers(0, total);
     UserDao dao = USER_MAPPER.userDao(CqlIdentifier.fromCql(KEYSPACE));
     IntStream.range(0, total)
         .forEach(

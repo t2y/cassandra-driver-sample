@@ -65,7 +65,7 @@ public class RateBasedRequestThrottlingTest {
   public void testInsertWithinRateLimit() {
     val total = 30;
     val dao = USER_MAPPER.userDao(CqlIdentifier.fromCql(KEYSPACE));
-    CassandraTestHelper.insertAsyncLogsOfData(total, dao);
+    CassandraTestHelper.insertAsyncLotsOfData(total, dao);
     Awaitility.await()
         .atMost(3, TimeUnit.SECONDS)
         .pollDelay(100, TimeUnit.MILLISECONDS)
@@ -85,7 +85,7 @@ public class RateBasedRequestThrottlingTest {
   public void testOccurLotsOfInsertAsync() {
     val total = 144;
     val dao = USER_MAPPER.userDao(CqlIdentifier.fromCql(KEYSPACE));
-    CassandraTestHelper.insertAsyncLogsOfData(total, dao);
+    CassandraTestHelper.insertAsyncLotsOfData(total, dao);
     Awaitility.await()
         .atMost(3, TimeUnit.SECONDS)
         .pollDelay(50, TimeUnit.MILLISECONDS)

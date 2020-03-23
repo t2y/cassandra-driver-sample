@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
 import java.util.stream.IntStream;
 
 import lombok.val;
@@ -84,9 +86,9 @@ public class CassandraTestHelper {
     return Path.of(url.toURI());
   }
 
-  static List<User> createUsers(int n) {
-    val users = new ArrayList<User>(n);
-    IntStream.range(0, n)
+  static List<User> createUsers(int start, int end) {
+    val users = new ArrayList<User>(end - start);
+    IntStream.range(start, end)
         .forEach(
             i -> {
               val user = new User(UUID.randomUUID(), "user" + i, i, true, LocalDate.now());
@@ -95,19 +97,38 @@ public class CassandraTestHelper {
     return users;
   }
 
-  static void insertAsyncLogsOfData(int total, UserDao dao) {
-    val users = CassandraTestHelper.createUsers(total);
-    IntStream.range(0, total)
-        .forEach(
-            i -> {
-              val future = dao.saveAsync(users.get(i));
-              future.whenComplete(
-                  (dummy, throwable) -> {
-                    if (throwable != null) {
-                      log.info("failed to insert: {}", i);
-                      log.info(throwable.getMessage());
-                    }
-                  });
-            });
+  private static final int PARALLELISM = 2;
+
+  static void insertDataAsynchronously(int start, int end, UserDao dao) {
+    val users = CassandraTestHelper.createUsers(start, end);
+    for (val user : users) {
+      val future = dao.saveAsync(user);
+      future.whenComplete(
+          (dummy, throwable) -> {
+            if (throwable != null) {
+              log.info("failed to insert: {}", user.getName());
+              log.info(throwable.getMessage());
+            }
+          });
+    }
+  }
+
+  static void insertAsyncLotsOfData(int total, UserDao dao) {
+    val pool = new ForkJoinPool(PARALLELISM);
+    val range = total / PARALLELISM;
+    val futures = new ArrayList<ForkJoinTask<?>>(PARALLELISM);
+    for (var i = 0; i < total; i += range) {
+      val start = i;
+      val future =
+          pool.submit(
+              () -> {
+                insertDataAsynchronously(start, start + range, dao);
+              });
+      futures.add(future);
+    }
+    pool.shutdown();
+    for (val future : futures) {
+      future.join();
+    }
   }
 }
