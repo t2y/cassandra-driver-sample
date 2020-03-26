@@ -51,7 +51,8 @@ public class App {
       if (args.length > 0 && args[0].equals("jmx")) {
         startJmxReporter(client);
         while (true) {
-          Thread.sleep(10000);
+          client.showReleaseVersion();
+          Thread.sleep(1000);
         }
       }
     }
